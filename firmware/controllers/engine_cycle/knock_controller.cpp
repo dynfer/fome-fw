@@ -9,37 +9,7 @@
 #include "knock_logic.h"
 
 int getCylinderKnockBank(uint8_t cylinderNumber) {
-	// C/C++ can't index in to bit fields, we have to provide lookup ourselves
-	switch (cylinderNumber) {
-#if EFI_PROD_CODE
-		case 0:
-			return engineConfiguration->knockBankCyl1;
-		case 1:
-			return engineConfiguration->knockBankCyl2;
-		case 2:
-			return engineConfiguration->knockBankCyl3;
-		case 3:
-			return engineConfiguration->knockBankCyl4;
-		case 4:
-			return engineConfiguration->knockBankCyl5;
-		case 5:
-			return engineConfiguration->knockBankCyl6;
-		case 6:
-			return engineConfiguration->knockBankCyl7;
-		case 7:
-			return engineConfiguration->knockBankCyl8;
-		case 8:
-			return engineConfiguration->knockBankCyl9;
-		case 9:
-			return engineConfiguration->knockBankCyl10;
-		case 10:
-			return engineConfiguration->knockBankCyl11;
-		case 11:
-			return engineConfiguration->knockBankCyl12;
-#endif
-		default:
-			return 0;
-	}
+	return engineConfiguration->knockBankCyl[cylinderNumber];
 }
 
 bool KnockControllerBase::onKnockSenseCompleted(uint8_t cylinderNumber, float dbv, efitick_t lastKnockTime) {

@@ -98,14 +98,66 @@ static const ADCConversionGroup adcConvGroupCh2 = {
 };
 #endif // KNOCK_HAS_CH2
 
+#if KNOCK_HAS_CH3
+static const ADCConversionGroup adcConvGroupCh3 = {
+	.circular = FALSE,
+	.num_channels = 1,
+	.end_cb = &completionCallback,
+	.error_cb = &errorCallback,
+	.cr1 = 0,
+	.cr2 = ADC_CR2_SWSTART,
+	// sample times for channels 10...18
+	.smpr1 = smpr1,
+	// sample times for channels 0...9
+	.smpr2 = smpr2,
+
+	.htr = 0,
+	.ltr = 0,
+
+	.sqr1 = 0,
+	.sqr2 = 0,
+	.sqr3 = ADC_SQR3_SQ1_N(KNOCK_ADC_CH3)
+};
+#endif // KNOCK_HAS_CH3
+
+#if KNOCK_HAS_CH4
+static const ADCConversionGroup adcConvGroupCh4 = {
+	.circular = FALSE,
+	.num_channels = 1,
+	.end_cb = &completionCallback,
+	.error_cb = &errorCallback,
+	.cr1 = 0,
+	.cr2 = ADC_CR2_SWSTART,
+	// sample times for channels 10...18
+	.smpr1 = smpr1,
+	// sample times for channels 0...9
+	.smpr2 = smpr2,
+
+	.htr = 0,
+	.ltr = 0,
+
+	.sqr1 = 0,
+	.sqr2 = 0,
+	.sqr3 = ADC_SQR3_SQ1_N(KNOCK_ADC_CH4)
+};
+#endif // KNOCK_HAS_CH4
+
 static const ADCConversionGroup* getConversionGroup(uint8_t channelIdx) {
 #if KNOCK_HAS_CH2
 	if (channelIdx == 1) {
 		return &adcConvGroupCh2;
 	}
-#else
-	(void)channelIdx;
 #endif // KNOCK_HAS_CH2
+#if KNOCK_HAS_CH3
+	if (channelIdx == 2) {
+		return &adcConvGroupCh3;
+	}
+#endif // KNOCK_HAS_CH3
+#if KNOCK_HAS_CH4
+	if (channelIdx == 3) {
+		return &adcConvGroupCh4;
+	}
+#endif // KNOCK_HAS_CH4
 
 	return &adcConvGroupCh1;
 }
@@ -178,9 +230,19 @@ void initSoftwareKnock() {
 		adcStart(&KNOCK_ADC, nullptr);
 
 		efiSetPadMode("knock ch1", KNOCK_PIN_CH1, PAL_MODE_INPUT_ANALOG);
-#if KNOCK_HAS_CH2		
+
+		#if KNOCK_HAS_CH2		
 		efiSetPadMode("knock ch2", KNOCK_PIN_CH2, PAL_MODE_INPUT_ANALOG);
-#endif
+		#endif
+
+		#if KNOCK_HAS_CH3		
+		efiSetPadMode("knock ch3", KNOCK_PIN_CH3, PAL_MODE_INPUT_ANALOG);
+		#endif
+
+		#if KNOCK_HAS_CH4		
+		efiSetPadMode("knock ch4", KNOCK_PIN_CH4, PAL_MODE_INPUT_ANALOG);
+		#endif
+		
 		kt.start();
 	}
 }

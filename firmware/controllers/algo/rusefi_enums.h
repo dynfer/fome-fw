@@ -616,6 +616,15 @@ typedef enum __attribute__ ((__packed__)) {
 	HPFP_CAM_EX2 = 4,
 } hpfp_cam_e;
 
+typedef enum __attribute__ ((__packed__)) {
+	Channel1 = 0,
+	Channel2 = 1,
+	Channel3 = 2,
+	Channel4 = 3,
+	
+} knockChannels_e;
+
+
 #if __cplusplus
 #include <cstdint>
 

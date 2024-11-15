@@ -112,6 +112,7 @@ struct_no_prefix engine_configuration_s
 
 #define LUA_PWM_COUNT 8
 #define LUA_DIGITAL_INPUT_COUNT 8
+#define ENGINE_CYL_COUNT 12
 
 ! https://github.com/rusefi/rusefi/issues/2010 shows the corner case wheel with huge depth requirement
 #define GAP_TRACKING_LENGTH 18
@@ -835,18 +836,9 @@ sensor_chart_e sensorChartMode;FOME console sensor sniffer mode;
 	bit verboseVVTDecoding;Verbose info in console below engineSnifferRpmThreshold\nenable vvt_details
 	bit invertCamVVTSignal;get invertCamVVTSignal
 	bit alphaNUseIat;In Alpha-N mode, compensate for air temperature.
-	bit knockBankCyl1,"Channel 2","Channel 1"
-	bit knockBankCyl2,"Channel 2","Channel 1"
-	bit knockBankCyl3,"Channel 2","Channel 1"
-	bit knockBankCyl4,"Channel 2","Channel 1"
-	bit knockBankCyl5,"Channel 2","Channel 1"
-	bit knockBankCyl6,"Channel 2","Channel 1"
-	bit knockBankCyl7,"Channel 2","Channel 1"
-	bit knockBankCyl8,"Channel 2","Channel 1"
-	bit knockBankCyl9,"Channel 2","Channel 1"
-	bit knockBankCyl10,"Channel 2","Channel 1"
-	bit knockBankCyl11,"Channel 2","Channel 1"
-	bit knockBankCyl12,"Channel 2","Channel 1"
+#define knockChannels_e_enum "Channel 1", "Channel 2", "Channel 3", "Channel 4"
+custom knockChannels_e 1 bits, U08, @OFFSET@, [0:1], @@knockChannels_e_enum@@
+knockChannels_e[ENGINE_CYL_COUNT iterate] knockBankCyl; Select the closest sensor to cylinder
 	bit tcuEnabled
 bit canBroadcastUseChannelTwo,"second","first"
 	bit useRawOutputToDriveIdleStepper;If enabled we use four Push-Pull outputs to directly drive stepper idle air valve coilss
