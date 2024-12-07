@@ -529,6 +529,8 @@ bool validateConfig() {
 	// Ignition
 	{
 		ensureArrayIsAscending("Dwell RPM", config->sparkDwellRpmBins);
+		ensureArrayIsAscendingOrDefault("Dwell RPM", config->dwellRpmBins);
+		ensureArrayIsAscendingOrDefault("Dwell Voltage", config->dwellVoltgeBins);
 
 		ensureArrayIsAscending("Ignition load", config->ignitionLoadBins);
 		ensureArrayIsAscending("Ignition RPM", config->ignitionRpmBins);
