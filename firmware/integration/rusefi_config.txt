@@ -1726,8 +1726,8 @@ uint16_t[CLT_LIMITER_CURVE_SIZE] cltRevLimitRpm;;"RPM", 1, 0, 0, 20000, 0
 uint16_t[FUEL_LEVEL_TABLE_COUNT] autoscale fuelLevelBins;;"volt", {1/@@PACK_MULT_VOLTAGE@@}, 0, 0, 5, 3
 uint8_t[FUEL_LEVEL_TABLE_COUNT] fuelLevelValues;;"%", 1, 0, 0, 100, 0
 
-uint8_t[DWELL_TABLE_SIZE] autoscale dwellRpmBins;;"RPM", 10, 0, 0, 20000, 0
-uint8_t[DWELL_TABLE_SIZE] autoscale dwellVoltgeBins;;"volt", 0.1, 0, 0, 16, 0
+uint8_t[DWELL_TABLE_SIZE] autoscale dwellRpmBins;;"RPM", 100, 0, 0, 25000, 0
+uint8_t[DWELL_TABLE_SIZE] dwellVoltgeBins;;"volt", 1, 0, 0, 16, 0
 uint16_t[DWELL_TABLE_SIZE x DWELL_TABLE_SIZE] autoscale dwellTable;;"ms", 0.1, 0, 0, 999, 1
 
 uint8_t[8] autoscale minimumOilPressureBins;;"RPM", 100, 0, 0, 25000, 0
