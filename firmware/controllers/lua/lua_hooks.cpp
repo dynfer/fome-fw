@@ -754,7 +754,7 @@ void configureRusefiLuaHooks(lua_State* l) {
 	});
 
 	lua_register(l, "sleep", [](lua_State* l2) {
-		auto sleepTime = luaL_checkinteger(l2, 1);
+		auto sleepTime = static_cast<uint32_t>(clampF(1, luaL_checkinteger(l2, 1), 10000));
 		chThdSleepMilliseconds(sleepTime);
 		return 0;
 	});
