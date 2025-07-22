@@ -752,6 +752,12 @@ void configureRusefiLuaHooks(lua_State* l) {
 		doInitElectronicThrottle();
 		return 0;
 	});
+
+	lua_register(l, "sleep", [](lua_State* l2) {
+		auto sleepTime = luaL_checkinteger(l2, 1);
+		chThdSleepMilliseconds(sleepTime);
+		return 0;
+	});
 #endif // EFI_PROD_CODE
 
 	lua_register(l, "crc8_j1850", [](lua_State* l2) {
