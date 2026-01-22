@@ -184,8 +184,8 @@ jobs:
     #     java-version: '8'
 
     - name: Install multilib, mingw, sshpass and mtools
-       working-directory: ./.github/workflows/
-       run: |
+      working-directory: ./.github/workflows/
+      run: |
          sudo ./add-ubuntu-latest-apt-mirrors.sh
          sudo apt-get install gcc-multilib g++-multilib g++-mingw-w64 gcc-mingw-w64 sshpass mtools
          sudo apt-get install zip
