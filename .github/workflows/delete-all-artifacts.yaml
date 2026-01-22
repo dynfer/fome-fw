@@ -5,7 +5,7 @@ on: [workflow_dispatch]
 jobs:
   delete:
     name: Delete Old Artifacts
-    runs-on: ubuntu-latest-selfhost
+    runs-on: Linux
     steps:
       - uses: actions/github-script@v7
         id: artifact
