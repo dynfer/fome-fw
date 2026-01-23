@@ -201,18 +201,18 @@ jobs:
 
     # Build rusEFI console
     - name: Build console
-      if: ${{ env.full == 'true' }}
+      #if: ${{ env.full == 'true' }}
       run: bash misc/jenkins/build_java_console.sh
 
     # Build the simulator
     - name: Build simulator
-      if: ${{ env.full == 'true' }}
+      #if: ${{ env.full == 'true' }}
       working-directory: ./simulator/
       # 'OS="Windows_NT"' allows us to build Windows executable on unix
       run: OS="Windows_NT" make -j8 PROJECT_BOARD=${{matrix.build-target}} BOARD_DIR=../firmware/${{matrix.folder}} 
 
     - name: Package Bundle
-      if: ${{ env.full == 'true' }}
+      #if: ${{ env.full == 'true' }}
       run: bash misc/jenkins/compile_other_versions/prepare_bundle.sh ${{matrix.build-target}} "${{matrix.ini-file}}" ${{ toJSON(inputs.build_name) }}
 
     - name: Upload INI to tunes.fome.tech
