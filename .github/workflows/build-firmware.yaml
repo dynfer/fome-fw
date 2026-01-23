@@ -178,10 +178,10 @@ jobs:
       with:
         submodules: true
 
-    # - uses: actions/setup-java@v3
-    #   with:
-    #     distribution: 'zulu'
-    #     java-version: '8'
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '25'
 
     - name: Install multilib, mingw, sshpass and mtools
       working-directory: ./.github/workflows/
@@ -240,7 +240,7 @@ jobs:
         path: ./firmware/tunerstudio/generated/${{matrix.ini-file}}
 
     - name: Upload bundle
-      if: ${{ env.full == 'true' && env.upload == 'true' }}
+      #if: ${{ env.full == 'true' && env.upload == 'true' }}
       uses: actions/upload-artifact@v4
       with:
         name: fome_bundle_${{matrix.build-target}}.zip
