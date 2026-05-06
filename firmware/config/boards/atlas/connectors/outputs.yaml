@@ -112,6 +112,22 @@ pins:
     class: outputs
     ts_name: Lowside 16
 
+  - id: G0_LS_1
+    class: outputs
+    ts_name: G0 Lowside 1
+
+  - id: G0_LS_2
+    class: outputs
+    ts_name: G0 Lowside 2
+
+  - id: G0_LS_3
+    class: outputs
+    ts_name: G0 Lowside 3
+
+  - id: G0_LS_4
+    class: outputs
+    ts_name: G0 Lowside 4
+
   - id: G4
     class: outputs
     ts_name: Highside 1

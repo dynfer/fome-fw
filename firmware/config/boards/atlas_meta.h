@@ -69,6 +69,11 @@
 #define ATLAS_G0_ANALOG_11 EFI_ADC_30
 #define ATLAS_G0_ANALOG_12 EFI_ADC_31
 
+#define ATLAS_G0_LS_1 Gpio::G0_LS_1
+#define ATLAS_G0_LS_2 Gpio::G0_LS_2
+#define ATLAS_G0_LS_3 Gpio::G0_LS_3
+#define ATLAS_G0_LS_4 Gpio::G0_LS_4
+
 #define PROTEUS_VR_1 Gpio::E14
 #define PROTEUS_VR_2 Gpio::E15
 

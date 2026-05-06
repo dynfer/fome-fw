@@ -234,6 +234,12 @@ enum class Gpio : uint16_t {
 	TLE6240_PIN_15 = 213,
 	TLE6240_PIN_16 = 214,
 
+	/* Atlas G0 extension low-side outputs */
+	G0_LS_1 = 215,
+	G0_LS_2 = 216,
+	G0_LS_3 = 217,
+	G0_LS_4 = 218,
+
 	CAN_INPUT_0 = 249,
 	CAN_INPUT_1 = 250,
 	CAN_INPUT_2 = 251,

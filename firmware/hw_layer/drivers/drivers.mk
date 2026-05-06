@@ -24,5 +24,6 @@ HW_LAYER_DRIVERS_CPP = \
 	$(DRIVERS_DIR)/gpio/mc33972.cpp \
 	$(DRIVERS_DIR)/gpio/mc33810.cpp \
 	$(DRIVERS_DIR)/gpio/drv8860.cpp \
+	$(DRIVERS_DIR)/gpio/g0_outputs.cpp \
 	$(DRIVERS_DIR)/gpio/tle9104.cpp \
 	$(DRIVERS_DIR)/gpio/protected_gpio.cpp \

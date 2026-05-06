@@ -20,6 +20,7 @@ DDEFS += -DSTM32_LSE_BYPASS
 
 # We are running on Atlas hardware!
 DDEFS += -DHW_ATLAS=1 -DHW_POLYGONUS_PRESETS=1
+DDEFS += -DBOARD_G0_OUTPUT_COUNT=1
 
 # Atlas has WiFi
 USE_WIFI = yes

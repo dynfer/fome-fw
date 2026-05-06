@@ -17,6 +17,7 @@
 #include "drivers/gpio/mc33810.h"
 #include "drivers/gpio/tle8888.h"
 #include "drivers/gpio/drv8860.h"
+#include "drivers/gpio/g0_outputs.h"
 #include "drivers/gpio/tle9104.h"
 
 #if (BOARD_TLE6240_COUNT > 0)
@@ -205,6 +206,14 @@ void initSmartGpio() {
 		efiAssertVoid(ObdCode::OBD_PCM_Processor_Fault, ret == (int)Gpio::DRV8860_PIN_1, "drv8860");
 	}
 #endif /* (BOARD_DRV8860_COUNT > 0) */
+
+#if HW_ATLAS && (BOARD_G0_OUTPUT_COUNT > 0)
+	{
+		int ret = g0_outputs_add(Gpio::G0_LS_1, 0);
+
+		efiAssertVoid(ObdCode::OBD_PCM_Processor_Fault, ret == (int)Gpio::G0_LS_1, "g0 outputs");
+	}
+#endif
 
 #if (BOARD_MC33810_COUNT > 0)
 	/* none of official boards has this IC */
