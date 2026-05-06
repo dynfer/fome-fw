@@ -117,6 +117,7 @@
 #include "rusefi_lua.h"
 #include "bootloader_updater.h"
 #include "g0_firmware_loader.h"
+#include "g0_analog.h"
 
 #include <setjmp.h>
 
@@ -210,6 +211,9 @@ void runRusEfi() {
 
 #if HW_ATLAS
 	loadG0Firmware();
+#if HAL_USE_ADC && HAL_USE_SPI
+	startG0AnalogInputs();
+#endif // HAL_USE_ADC && HAL_USE_SPI
 #endif
 
 #if EFI_TUNER_STUDIO

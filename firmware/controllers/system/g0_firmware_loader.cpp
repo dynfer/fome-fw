@@ -36,7 +36,9 @@ static constexpr uint8_t G0_APP_CMD_ENTER_UPDATE = 0xA5;
 
 static constexpr uint8_t G0_APP_STATUS_READY = 0x00;
 static constexpr uint8_t G0_APP_STATUS_UPDATE_MODE = 0x01;
-static constexpr size_t G0_APP_FRAME_SIZE = 8;
+static constexpr uint8_t G0_APP_RESULT_OK = 0x00;
+static constexpr size_t G0_APP_FRAME_SIZE = 32;
+static constexpr size_t G0_APP_HEADER_SIZE = 4;
 static constexpr size_t G0_SPI_DMA_BUFFER_SIZE = 258;
 
 static NO_CACHE uint8_t g0SpiTxBuffer[G0_SPI_DMA_BUFFER_SIZE];
@@ -66,8 +68,8 @@ static void releaseControlPins() {
 	setPin(G0_BOOT_PIN, false);
 	setPin(G0_RESET_PIN, true);
 
-	efiSetPadMode("G0 BOOT", G0_BOOT_PIN, PAL_MODE_INPUT);
-	efiSetPadMode("G0 RESET", G0_RESET_PIN, PAL_MODE_INPUT);
+	efiSetPadModeWithoutOwnershipAcquisition("G0 BOOT", G0_BOOT_PIN, PAL_MODE_INPUT);
+	efiSetPadModeWithoutOwnershipAcquisition("G0 RESET", G0_RESET_PIN, PAL_MODE_INPUT);
 }
 
 static void resetG0(bool bootloaderMode) {
@@ -215,7 +217,8 @@ static void exchangeG0AppFrame(SPIDriver* spi, uint8_t command, uint8_t* rx) {
 static bool isG0AppResponse(const uint8_t* rx, uint8_t expectedLastCommand) {
 	const bool knownStatus = rx[0] == G0_APP_STATUS_READY || rx[0] == G0_APP_STATUS_UPDATE_MODE;
 
-	return knownStatus && rx[5] == expectedLastCommand && rx[6] == 0 && rx[7] == 0;
+	return knownStatus && rx[1] == G0_APP_RESULT_OK && rx[2] == expectedLastCommand &&
+		   rx[3] <= (G0_APP_FRAME_SIZE - G0_APP_HEADER_SIZE);
 }
 
 static bool readG0AppVersion(SPIDriver* spi, uint32_t& version) {
@@ -229,7 +232,7 @@ static bool readG0AppVersion(SPIDriver* spi, uint32_t& version) {
 		return false;
 	}
 
-	version = readLe32(&rx[1]);
+	version = readLe32(&rx[G0_APP_HEADER_SIZE]);
 	return true;
 }
 

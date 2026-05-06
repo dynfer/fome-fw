@@ -22,6 +22,7 @@ HW_LAYER_EMS_CPP = \
 	$(PROJECT_DIR)/hw_layer/mmc_card_mount.cpp \
 	$(PROJECT_DIR)/hw_layer/adc/adc_inputs.cpp \
 	$(PROJECT_DIR)/hw_layer/adc/adc_subscription.cpp \
+	$(PROJECT_DIR)/hw_layer/adc/g0_analog.cpp \
 	$(PROJECT_DIR)/hw_layer/adc/ads1015.cpp \
 	$(PROJECT_DIR)/hw_layer/mc33816.cpp \
 	$(PROJECT_DIR)/hw_layer/stepper.cpp \
@@ -39,4 +40,3 @@ endif
 # '-include' is a magic kind of 'include' which would survive if file to be included is not found
 #
 -include $(PROJECT_DIR)/hw_layer/$(CPU_HWLAYER)/hw_ports.mk
-

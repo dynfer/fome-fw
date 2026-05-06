@@ -9,6 +9,7 @@
 #include "pch.h"
 
 #include "AdcConfiguration.h"
+#include "g0_analog.h"
 
 #if HAL_USE_ADC
 
@@ -234,6 +235,13 @@ bool readSlowAnalogInputs() {
 }
 
 adcsample_t getSlowAdcSample(adc_channel_e channel) {
+#if HW_ATLAS && HAL_USE_SPI
+	adcsample_t g0Sample = 0;
+	if (getG0AnalogInputAsAdc(channel, g0Sample)) {
+		return g0Sample;
+	}
+#endif // HW_ATLAS && HAL_USE_SPI
+
 	// Maps ADC channel to index in the interleaved 16-bit sample buffer.
 	// In dual mode, samples are interleaved: ADC1[0], ADC2[0], ADC1[1], ADC2[1], ...
 	// ADC1 channels (seq 0-9) map to even indices, ADC2 channels (seq 0-9) map to odd indices.
