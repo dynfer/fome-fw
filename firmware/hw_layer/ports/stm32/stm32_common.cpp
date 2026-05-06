@@ -8,6 +8,8 @@
 
 #include "pch.h"
 
+#include "drivers/gpio/g0_outputs.h"
+
 #include <rusefi/expected.h>
 #include "hardware.h"
 
@@ -354,6 +356,12 @@ stm32_hardware_pwm* getNextPwmDevice() {
 }
 
 /*static*/ hardware_pwm* hardware_pwm::tryInitPin(const char* msg, brain_pin_e pin, float frequencyHz, float duty) {
+#if HW_ATLAS && HAL_USE_SPI && (BOARD_G0_OUTPUT_COUNT > 0)
+	if (auto g0Pwm = g0_outputs_tryInitPwm(msg, pin, frequencyHz, duty)) {
+		return g0Pwm;
+	}
+#endif
+
 	// Hardware PWM can't do very slow PWM - the timer counter is only 16 bits, so at 2MHz counting, that's a minimum of
 	// 31hz.
 	if (frequencyHz < 50) {

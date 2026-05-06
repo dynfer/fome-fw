@@ -13,3 +13,7 @@
 #define G0_OUTPUTS 4
 
 int g0_outputs_add(brain_pin_e base, unsigned int index);
+
+struct hardware_pwm;
+
+hardware_pwm* g0_outputs_tryInitPwm(const char* msg, brain_pin_e pin, float frequencyHz, float duty);

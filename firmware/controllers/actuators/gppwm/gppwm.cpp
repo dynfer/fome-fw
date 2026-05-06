@@ -41,10 +41,10 @@ void initGpPwm() {
 		float freq = cfg.pwmFrequency;
 		bool usePwm = freq > 0;
 
-		// Setup pin & pwm
-		pins[i].initPin("gp pwm", cfg.pin);
 		if (usePwm) {
-			startSimplePwm(&outputs[i], channelNames[i], &pins[i], freq, 0);
+			startSimplePwmHard(&outputs[i], channelNames[i], cfg.pin, &pins[i], freq, 0);
+		} else {
+			pins[i].initPin("gp pwm", cfg.pin);
 		}
 
 		// Set up this channel's lookup table

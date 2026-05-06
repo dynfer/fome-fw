@@ -320,6 +320,15 @@ void startSimplePwm(SimplePwm* state, const char* msg, OutputPin* output, float 
 		return;
 	}
 
+#if EFI_PROD_CODE && HAL_USE_PWM && (BOARD_EXT_GPIOCHIPS > 0)
+	if (output != nullptr && isBrainPinValid(output->m_brainPin) && !brain_pin_is_onchip(output->m_brainPin)) {
+		if (auto hardPwm = hardware_pwm::tryInitPin(msg, output->m_brainPin, frequency, dutyCycle)) {
+			state->hardPwm = hardPwm;
+			return;
+		}
+	}
+#endif
+
 	state->seq.setSwitchTime(0, dutyCycle);
 	state->seq.setSwitchTime(1, 1);
 	state->seq.setChannelState(0, 0, false);
