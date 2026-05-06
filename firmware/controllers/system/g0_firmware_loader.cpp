@@ -37,12 +37,13 @@ static constexpr uint8_t G0_APP_CMD_ENTER_UPDATE = 0xA5;
 static constexpr uint8_t G0_APP_STATUS_READY = 0x00;
 static constexpr uint8_t G0_APP_STATUS_UPDATE_MODE = 0x01;
 static constexpr uint8_t G0_APP_RESULT_OK = 0x00;
-static constexpr size_t G0_APP_FRAME_SIZE = 32;
+static constexpr size_t G0_APP_FRAME_SIZE = 36;
 static constexpr size_t G0_APP_HEADER_SIZE = 4;
 static constexpr size_t G0_SPI_DMA_BUFFER_SIZE = 258;
 
 static NO_CACHE uint8_t g0SpiTxBuffer[G0_SPI_DMA_BUFFER_SIZE];
 static NO_CACHE uint8_t g0SpiRxBuffer[G0_SPI_DMA_BUFFER_SIZE];
+static bool g0ControlPinsInitialized = false;
 
 static SPIConfig g0SpiConfig = {
 		.circular = false,
@@ -57,19 +58,22 @@ static void setPin(brain_pin_e pin, bool value) {
 }
 
 static void initControlPins() {
-	efiSetPadMode("G0 BOOT", G0_BOOT_PIN, PAL_MODE_OUTPUT_PUSHPULL);
-	efiSetPadMode("G0 RESET", G0_RESET_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+	if (!g0ControlPinsInitialized) {
+		efiSetPadMode("G0 BOOT", G0_BOOT_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+		efiSetPadMode("G0 RESET", G0_RESET_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+		g0ControlPinsInitialized = true;
+	} else {
+		efiSetPadModeWithoutOwnershipAcquisition("G0 BOOT", G0_BOOT_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+		efiSetPadModeWithoutOwnershipAcquisition("G0 RESET", G0_RESET_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+	}
 
 	setPin(G0_BOOT_PIN, false);
 	setPin(G0_RESET_PIN, true);
 }
 
-static void releaseControlPins() {
+static void holdG0InRunMode() {
 	setPin(G0_BOOT_PIN, false);
 	setPin(G0_RESET_PIN, true);
-
-	efiSetPadModeWithoutOwnershipAcquisition("G0 BOOT", G0_BOOT_PIN, PAL_MODE_INPUT);
-	efiSetPadModeWithoutOwnershipAcquisition("G0 RESET", G0_RESET_PIN, PAL_MODE_INPUT);
 }
 
 static void resetG0(bool bootloaderMode) {
@@ -221,6 +225,17 @@ static bool isG0AppResponse(const uint8_t* rx, uint8_t expectedLastCommand) {
 		   rx[3] <= (G0_APP_FRAME_SIZE - G0_APP_HEADER_SIZE);
 }
 
+static int findG0AppResponseOffset(const uint8_t* rx, size_t rxSize, uint8_t expectedLastCommand) {
+	for (size_t offset = 0; offset + G0_APP_HEADER_SIZE <= rxSize; offset++) {
+		if (isG0AppResponse(&rx[offset], expectedLastCommand) &&
+			offset + G0_APP_HEADER_SIZE + rx[offset + 3] <= rxSize) {
+			return static_cast<int>(offset);
+		}
+	}
+
+	return -1;
+}
+
 static bool readG0AppVersion(SPIDriver* spi, uint32_t& version) {
 	uint8_t rx[G0_APP_FRAME_SIZE];
 
@@ -228,11 +243,18 @@ static bool readG0AppVersion(SPIDriver* spi, uint32_t& version) {
 	chThdSleepMilliseconds(1);
 
 	exchangeG0AppFrame(spi, G0_APP_CMD_NOP, rx);
-	if (!isG0AppResponse(rx, G0_APP_CMD_READ_VERSION)) {
+	const int responseOffset = findG0AppResponseOffset(rx, sizeof(rx), G0_APP_CMD_READ_VERSION);
+
+	if (responseOffset < 0) {
 		return false;
 	}
 
-	version = readLe32(&rx[G0_APP_HEADER_SIZE]);
+	if (responseOffset > 0) {
+		efiPrintf("G0 firmware load: app version response aligned at offset %d", responseOffset);
+	}
+
+	const uint8_t* response = &rx[responseOffset];
+	version = readLe32(&response[G0_APP_HEADER_SIZE]);
 	return true;
 }
 
@@ -346,7 +368,7 @@ bool loadG0Firmware(bool forceUpdate) {
 	}
 
 	spiReleaseBus(spi);
-	releaseControlPins();
+	holdG0InRunMode();
 
 	if (ok) {
 		efiPrintf("G0 firmware load: complete");
