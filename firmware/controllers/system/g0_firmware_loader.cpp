@@ -39,6 +39,7 @@ static constexpr uint8_t G0_APP_STATUS_UPDATE_MODE = 0x01;
 static constexpr uint8_t G0_APP_RESULT_OK = 0x00;
 static constexpr size_t G0_APP_FRAME_SIZE = 36;
 static constexpr size_t G0_APP_HEADER_SIZE = 4;
+static constexpr size_t G0_APP_MAX_PAYLOAD_SIZE = G0_APP_FRAME_SIZE - G0_APP_HEADER_SIZE;
 static constexpr size_t G0_SPI_DMA_BUFFER_SIZE = 258;
 
 static NO_CACHE uint8_t g0SpiTxBuffer[G0_SPI_DMA_BUFFER_SIZE];
@@ -205,6 +206,20 @@ static uint32_t readLe32(const uint8_t* data) {
 		   (static_cast<uint32_t>(data[2]) << 16) | (static_cast<uint32_t>(data[3]) << 24);
 }
 
+struct G0AppResponse {
+	const uint8_t* frame = nullptr;
+	size_t offset = 0;
+	size_t payloadLength = 0;
+
+	const uint8_t* payload() const {
+		return &frame[G0_APP_HEADER_SIZE];
+	}
+
+	bool isShifted() const {
+		return offset != 0;
+	}
+};
+
 static void exchangeG0AppFrame(SPIDriver* spi, uint8_t command, uint8_t* rx) {
 	memset(g0SpiTxBuffer, 0, G0_APP_FRAME_SIZE);
 	g0SpiTxBuffer[0] = command;
@@ -218,22 +233,33 @@ static void exchangeG0AppFrame(SPIDriver* spi, uint8_t command, uint8_t* rx) {
 	memcpy(rx, g0SpiRxBuffer, G0_APP_FRAME_SIZE);
 }
 
-static bool isG0AppResponse(const uint8_t* rx, uint8_t expectedLastCommand) {
-	const bool knownStatus = rx[0] == G0_APP_STATUS_READY || rx[0] == G0_APP_STATUS_UPDATE_MODE;
-
-	return knownStatus && rx[1] == G0_APP_RESULT_OK && rx[2] == expectedLastCommand &&
-		   rx[3] <= (G0_APP_FRAME_SIZE - G0_APP_HEADER_SIZE);
+static bool isKnownG0AppStatus(uint8_t status) {
+	return status == G0_APP_STATUS_READY || status == G0_APP_STATUS_UPDATE_MODE;
 }
 
-static int findG0AppResponseOffset(const uint8_t* rx, size_t rxSize, uint8_t expectedLastCommand) {
+static bool isG0AppResponseAt(const uint8_t* frame, size_t availableSize, uint8_t expectedLastCommand) {
+	if (availableSize < G0_APP_HEADER_SIZE) {
+		return false;
+	}
+
+	const size_t payloadLength = frame[3];
+	const size_t responseLength = G0_APP_HEADER_SIZE + payloadLength;
+
+	return isKnownG0AppStatus(frame[0]) && frame[1] == G0_APP_RESULT_OK && frame[2] == expectedLastCommand &&
+		   payloadLength <= G0_APP_MAX_PAYLOAD_SIZE && responseLength <= availableSize;
+}
+
+static bool findG0AppResponse(const uint8_t* rx, size_t rxSize, uint8_t expectedLastCommand, G0AppResponse& response) {
 	for (size_t offset = 0; offset + G0_APP_HEADER_SIZE <= rxSize; offset++) {
-		if (isG0AppResponse(&rx[offset], expectedLastCommand) &&
-			offset + G0_APP_HEADER_SIZE + rx[offset + 3] <= rxSize) {
-			return static_cast<int>(offset);
+		if (isG0AppResponseAt(&rx[offset], rxSize - offset, expectedLastCommand)) {
+			response.frame = &rx[offset];
+			response.offset = offset;
+			response.payloadLength = rx[offset + 3];
+			return true;
 		}
 	}
 
-	return -1;
+	return false;
 }
 
 static bool readG0AppVersion(SPIDriver* spi, uint32_t& version) {
@@ -243,18 +269,18 @@ static bool readG0AppVersion(SPIDriver* spi, uint32_t& version) {
 	chThdSleepMilliseconds(1);
 
 	exchangeG0AppFrame(spi, G0_APP_CMD_NOP, rx);
-	const int responseOffset = findG0AppResponseOffset(rx, sizeof(rx), G0_APP_CMD_READ_VERSION);
+	G0AppResponse response;
 
-	if (responseOffset < 0) {
+	if (!findG0AppResponse(rx, sizeof(rx), G0_APP_CMD_READ_VERSION, response) ||
+		response.payloadLength < sizeof(version)) {
 		return false;
 	}
 
-	if (responseOffset > 0) {
-		efiPrintf("G0 firmware load: app version response aligned at offset %d", responseOffset);
+	if (response.isShifted()) {
+		efiPrintf("G0 firmware load: app version response aligned at offset %d", static_cast<int>(response.offset));
 	}
 
-	const uint8_t* response = &rx[responseOffset];
-	version = readLe32(&response[G0_APP_HEADER_SIZE]);
+	version = readLe32(response.payload());
 	return true;
 }
 
