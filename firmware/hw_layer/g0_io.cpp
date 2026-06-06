@@ -18,6 +18,8 @@ namespace protocol = g0_spi_protocol;
 namespace {
 static constexpr spi_device_e G0_SPI_DEVICE = SPI_DEVICE_5;
 static constexpr brain_pin_e G0_SPI_CS_PIN = Gpio::F6;
+static constexpr brain_pin_e G0_RESET_PIN = Gpio::B14;
+static constexpr brain_pin_e G0_BOOT_PIN = Gpio::B15;
 
 static constexpr size_t G0_ADC_FIRST_CHANNEL_INDEX = 20;
 static constexpr int G0_SPI_THREAD_ACTIVE_PERIOD_MS = 1;
@@ -48,6 +50,18 @@ enum class G0SpiRequest : uint8_t {
 	ReadOutput,
 	ReadSent,
 };
+
+static void setPin(brain_pin_e pin, bool value) {
+	palWritePad(getHwPort("g0", pin), getHwPin("g0", pin), value);
+}
+
+static void driveG0RunModePins() {
+	efiSetPadModeWithoutOwnershipAcquisition("G0 BOOT", G0_BOOT_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+	efiSetPadModeWithoutOwnershipAcquisition("G0 RESET", G0_RESET_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+
+	setPin(G0_BOOT_PIN, false);
+	setPin(G0_RESET_PIN, true);
+}
 
 static bool isValidDigitalInput(uint8_t input) {
 	return input >= 1 && input <= protocol::digitalInputCount;
@@ -135,9 +149,11 @@ class G0SpiIoDevice final : public BackgroundSpiDevice {
 public:
 	bool ensureReady() {
 		if (m_spi) {
+			driveG0RunModePins();
 			return true;
 		}
 
+		driveG0RunModePins();
 		turnOnSpi(G0_SPI_DEVICE);
 
 		m_spi = getSpiDevice(G0_SPI_DEVICE);
@@ -163,6 +179,7 @@ public:
 	}
 
 	void enablePolling() {
+		driveG0RunModePins();
 		m_pollingEnabled.store(true, std::memory_order_relaxed);
 		updatePeriodForState();
 	}
@@ -173,6 +190,7 @@ public:
 	}
 
 	void resume() {
+		driveG0RunModePins();
 		m_suspended.store(false, std::memory_order_relaxed);
 		updatePeriodForState();
 	}
