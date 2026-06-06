@@ -39,8 +39,8 @@ static void setPin(brain_pin_e pin, bool value) {
 }
 
 static void initControlPins() {
-	efiSetPadModeWithoutOwnerShipAcquisition("G0 BOOT", G0_BOOT_PIN, PAL_MODE_OUTPUT_PUSHPULL);
-	efiSetPadModeWithoutOwnerShipAcquisition("G0 RESET", G0_RESET_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+	efiSetPadModeWithoutOwnershipAcquisition("G0 BOOT", G0_BOOT_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+	efiSetPadModeWithoutOwnershipAcquisition("G0 RESET", G0_RESET_PIN, PAL_MODE_OUTPUT_PUSHPULL);
 
 	setPin(G0_BOOT_PIN, false);
 	setPin(G0_RESET_PIN, true);
@@ -50,8 +50,8 @@ static void releaseControlPins() {
 	setPin(G0_BOOT_PIN, false);
 	setPin(G0_RESET_PIN, true);
 
-	efiSetPadModeWithoutOwnerShipAcquisition("G0 BOOT", G0_BOOT_PIN, PAL_MODE_INPUT);
-	efiSetPadModeWithoutOwnerShipAcquisition("G0 RESET", G0_RESET_PIN, PAL_MODE_INPUT);
+	efiSetPadModeWithoutOwnershipAcquisition("G0 BOOT", G0_BOOT_PIN, PAL_MODE_INPUT);
+	efiSetPadModeWithoutOwnershipAcquisition("G0 RESET", G0_RESET_PIN, PAL_MODE_INPUT);
 }
 
 static void resetG0(bool bootloaderMode) {
