@@ -116,6 +116,7 @@
 #include "trigger_emulator_algo.h"
 #include "rusefi_lua.h"
 #include "bootloader_updater.h"
+#include "g0_firmware_loader.h"
 
 #include <setjmp.h>
 
@@ -173,6 +174,7 @@ void runRusEfi() {
 
 	addConsoleAction(CMD_REBOOT, scheduleReboot);
 	addConsoleAction(CMD_REBOOT_DFU, jump_to_bootloader);
+	addConsoleAction("force_g0_update", []() { loadG0Firmware(true); });
 
 #if EFI_USE_OPENBLT
 	addConsoleAction(CMD_REBOOT_OPENBLT, jump_to_openblt);
@@ -205,6 +207,10 @@ void runRusEfi() {
 
 	// Read configuration from flash memory
 	loadConfiguration();
+
+#if HW_ATLAS
+	loadG0Firmware();
+#endif
 
 #if EFI_TUNER_STUDIO
 	startTunerStudioConnectivity();

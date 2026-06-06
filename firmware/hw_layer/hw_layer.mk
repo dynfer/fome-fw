@@ -16,6 +16,7 @@ HW_LAYER_EMS_CPP = \
 	$(PROJECT_DIR)/hw_layer/digital_input/trigger/trigger_input_exti.cpp \
 	$(PROJECT_DIR)/hw_layer/hardware.cpp \
 	$(PROJECT_DIR)/hw_layer/dma_buffers.cpp \
+	$(PROJECT_DIR)/hw_layer/g0_io.cpp \
 	$(PROJECT_DIR)/hw_layer/spi_devices.cpp \
 	$(PROJECT_DIR)/hw_layer/spi_thread.cpp \
 	$(PROJECT_DIR)/hw_layer/smart_gpio.cpp \

@@ -20,6 +20,7 @@
 #include "eficonsole.h"
 #include "console_io.h"
 #include "idle_thread.h"
+#include "g0_io.h"
 
 #if EFI_PROD_CODE
 #include "mpu_util.h"
@@ -305,6 +306,10 @@ void initHardware() {
 #if HAL_USE_SPI
 	initSpiModules();
 #endif /* HAL_USE_SPI */
+
+#if HW_ATLAS && HAL_USE_SPI
+	initG0Io();
+#endif
 
 #if EFI_PROD_CODE && (BOARD_EXT_GPIOCHIPS > 0)
 	// initSmartGpio depends on 'initSpiModules'

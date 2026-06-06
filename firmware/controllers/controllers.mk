@@ -27,6 +27,7 @@ CONTROLLERS_SRC_CPP = \
 	$(CONTROLLERS_DIR)/system/timer/single_timer_executor.cpp \
 	$(CONTROLLERS_DIR)/system/timer/pwm_generator_logic.cpp \
 	$(CONTROLLERS_DIR)/system/timer/event_queue.cpp \
+	$(CONTROLLERS_DIR)/system/g0_firmware_loader.cpp \
 	$(CONTROLLERS_DIR)/settings.cpp \
 	$(CONTROLLERS_DIR)/core/error_handling.cpp \
 	$(CONTROLLERS_DIR)/engine_cycle/high_pressure_fuel_pump.cpp \
@@ -74,4 +75,3 @@ CONTROLLERS_INC=\
 	$(CONTROLLERS_DIR)/actuators \
 	$(CONTROLLERS_DIR)/actuators/gppwm \
 	$(CONTROLLERS_DIR)/serial \
-
