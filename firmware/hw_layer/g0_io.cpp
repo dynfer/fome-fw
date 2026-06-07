@@ -1,8 +1,8 @@
 #include "pch.h"
 
-#if HW_ATLAS && HAL_USE_SPI
-
 #include "g0_io.h"
+
+#if HW_ATLAS && HAL_USE_SPI
 
 #include "adc_provider.h"
 #include "eficonsole.h"
@@ -207,6 +207,26 @@ public:
 		return m_periodMs.load(std::memory_order_relaxed);
 	}
 
+	bool shouldStartTransfer() const override {
+		if (m_request.load(std::memory_order_acquire) != G0SpiRequest::None) {
+			return true;
+		}
+
+		if (m_exclusiveMode.load(std::memory_order_acquire)) {
+			return false;
+		}
+
+		return m_pollingEnabled.load(std::memory_order_relaxed) && !m_suspended.load(std::memory_order_relaxed);
+	}
+
+	void onTransferStarted() override {
+		m_transferActive.store(true, std::memory_order_release);
+	}
+
+	void onTransferFinished() override {
+		m_transferActive.store(false, std::memory_order_release);
+	}
+
 	void performTransfer(SPIDriver& driver) override {
 		const auto request = m_request.exchange(G0SpiRequest::None, std::memory_order_acq_rel);
 
@@ -241,8 +261,29 @@ public:
 	}
 
 	bool executeCallback(G0SpiOperation callback) {
-		m_callback = callback;
-		return submitRequest(G0SpiRequest::ExecuteCallback);
+		if (!callback || !ensureReady()) {
+			return false;
+		}
+
+		m_exclusiveMode.store(true, std::memory_order_release);
+		updatePeriodForState();
+
+		const bool idle = waitUntilIdle();
+		if (!idle) {
+			m_exclusiveMode.store(false, std::memory_order_release);
+			updatePeriodForState();
+			return false;
+		}
+
+		spiAcquireBus(m_spi);
+		spiStart(m_spi, &config());
+		const bool ok = callback(*m_spi);
+		spiStop(m_spi);
+		spiReleaseBus(m_spi);
+
+		m_exclusiveMode.store(false, std::memory_order_release);
+		updatePeriodForState();
+		return ok;
 	}
 
 	bool setInputMode(uint8_t input, uint8_t mode) {
@@ -358,7 +399,9 @@ private:
 			return;
 		}
 
-		if (!m_pollingEnabled.load(std::memory_order_relaxed) || m_suspended.load(std::memory_order_relaxed)) {
+		if (!m_pollingEnabled.load(std::memory_order_relaxed) ||
+			m_suspended.load(std::memory_order_relaxed) ||
+			m_exclusiveMode.load(std::memory_order_relaxed)) {
 			m_periodMs.store(G0_SPI_THREAD_IDLE_PERIOD_MS, std::memory_order_relaxed);
 			return;
 		}
@@ -367,6 +410,10 @@ private:
 	}
 
 	bool submitRequest(G0SpiRequest request) {
+		if (m_exclusiveMode.load(std::memory_order_acquire)) {
+			return false;
+		}
+
 		if (!ensureRegistered()) {
 			return false;
 		}
@@ -384,6 +431,21 @@ private:
 		}
 
 		return m_result;
+	}
+
+	bool waitUntilIdle() const {
+		for (int i = 0; i < G0_SPI_THREAD_TIMEOUT_MS; i++) {
+			const bool requestPending = m_request.load(std::memory_order_acquire) != G0SpiRequest::None;
+			const bool transferActive = m_transferActive.load(std::memory_order_acquire);
+
+			if (!requestPending && !transferActive) {
+				return true;
+			}
+
+			chThdSleepMilliseconds(1);
+		}
+
+		return false;
 	}
 
 	bool handleRequest(SPIDriver& driver, G0SpiRequest request) {
@@ -611,6 +673,8 @@ private:
 	std::atomic<int> m_periodMs{G0_SPI_THREAD_IDLE_PERIOD_MS};
 	std::atomic<bool> m_pollingEnabled{false};
 	std::atomic<bool> m_suspended{false};
+	std::atomic<bool> m_exclusiveMode{false};
+	std::atomic<bool> m_transferActive{false};
 	std::atomic<G0SpiRequest> m_request{G0SpiRequest::None};
 	std::atomic<uint8_t> m_requestInput{0};
 	std::atomic<uint8_t> m_requestMode{0};
