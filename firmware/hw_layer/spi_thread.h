@@ -14,6 +14,11 @@ public:
 	virtual SPIDriver* spiDriver() const = 0;
 	virtual const SPIConfig& config() = 0;
 	virtual int getSpiThreadPeriodMs() const = 0;
+	virtual bool shouldStartTransfer() const {
+		return true;
+	}
+	virtual void onTransferStarted() {}
+	virtual void onTransferFinished() {}
 	virtual void performTransfer(SPIDriver& driver) = 0;
 };
 

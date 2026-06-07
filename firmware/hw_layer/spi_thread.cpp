@@ -40,11 +40,17 @@ private:
 				continue;
 			}
 
+			if (!device->shouldStartTransfer()) {
+				continue;
+			}
+
+			device->onTransferStarted();
 			spiAcquireBus(driver);
 			spiStart(driver, &device->config());
 			device->performTransfer(*driver);
 			spiStop(driver);
 			spiReleaseBus(driver);
+			device->onTransferFinished();
 
 			lastPollTimes[i] = nowNt;
 		}
