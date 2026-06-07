@@ -106,6 +106,10 @@
 #define BOARD_MC33810_COUNT 0
 #endif
 
+#ifndef BOARD_G0_GPIOCHIP_COUNT
+#define BOARD_G0_GPIOCHIP_COUNT 0
+#endif
+
 #ifndef BOARD_TLE9104_COUNT
 #define BOARD_TLE9104_COUNT 0
 #endif

@@ -19,7 +19,8 @@
 #define BOARD_EXT_GPIOCHIPS 3
 #else
 #define BOARD_EXT_GPIOCHIPS                                                                                            \
-	(BOARD_TLE6240_COUNT + BOARD_MC33972_COUNT + BOARD_TLE8888_COUNT + BOARD_DRV8860_COUNT + BOARD_MC33810_COUNT + 0)
+	(BOARD_TLE6240_COUNT + BOARD_MC33972_COUNT + BOARD_TLE8888_COUNT + BOARD_DRV8860_COUNT + BOARD_MC33810_COUNT + \
+	 BOARD_G0_GPIOCHIP_COUNT + 0)
 #endif
 
 void initSmartGpio();

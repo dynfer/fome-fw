@@ -1,8 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include "rusefi_types.h"
 
 typedef struct hal_spi_driver SPIDriver;
+struct hardware_pwm;
 
 struct G0DigitalState {
 	uint8_t mode = 0;
@@ -44,3 +46,6 @@ bool g0DisableOutput(uint8_t output);
 bool g0GetDigitalState(uint8_t input, G0DigitalState& state);
 bool g0GetOutputState(uint8_t output, G0OutputState& state);
 bool g0ReadSentState(uint8_t input, G0SentState& state);
+
+bool g0IsOutputPin(brain_pin_e pin);
+hardware_pwm* g0TryInitPwmPin(brain_pin_e pin, float frequencyHz, float duty);

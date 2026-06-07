@@ -61,6 +61,7 @@ extern SPIConfig mmc_ls_spicfg;
 // Hardware PWM
 struct hardware_pwm {
 	static hardware_pwm* tryInitPin(const char* msg, brain_pin_e pin, float frequencyHz, float duty);
+	virtual void setFrequency(float) {}
 	virtual void setDuty(float duty) = 0;
 };
 
