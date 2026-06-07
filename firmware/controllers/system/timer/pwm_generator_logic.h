@@ -112,6 +112,7 @@ class SimplePwm : public PwmConfig, public IPwm {
 public:
 	SimplePwm();
 	SimplePwm(const char* name);
+	void setFrequency(float frequency);
 	void setSimplePwmDutyCycle(float dutyCycle) override;
 	MultiChannelStateSequenceWithData<2> seq;
 	hardware_pwm* hardPwm = nullptr;

@@ -11,6 +11,7 @@
 #include "pch.h"
 
 #if EFI_PROD_CODE
+#include "g0_io.h"
 #include "mpu_util.h"
 #endif // EFI_PROD_CODE
 
@@ -27,6 +28,17 @@ SimplePwm::SimplePwm() {
 SimplePwm::SimplePwm(const char* name)
 	: SimplePwm() {
 	m_name = name;
+}
+
+void SimplePwm::setFrequency(float frequency) {
+#if EFI_PROD_CODE
+	if (hardPwm) {
+		hardPwm->setFrequency(frequency);
+		return;
+	}
+#endif
+
+	PwmConfig::setFrequency(frequency);
 }
 
 PwmConfig::PwmConfig() {
@@ -319,6 +331,18 @@ void startSimplePwm(SimplePwm* state, const char* msg, OutputPin* output, float 
 		warning(ObdCode::OBD_PCM_Processor_Fault, "low frequency %.2f %s", frequency, msg);
 		return;
 	}
+
+#if EFI_PROD_CODE
+	if (!state->hardPwm && output && g0IsOutputPin(output->m_brainPin)) {
+		state->hardPwm = g0TryInitPwmPin(output->m_brainPin, frequency, dutyCycle);
+
+		if (state->hardPwm) {
+			state->setFrequency(frequency);
+			state->setSimplePwmDutyCycle(dutyCycle);
+			return;
+		}
+	}
+#endif
 
 	state->seq.setSwitchTime(0, dutyCycle);
 	state->seq.setSwitchTime(1, 1);

@@ -9,6 +9,7 @@
 #include "hardware.h"
 #include "mpu_util.h"
 #include "spi_thread.h"
+#include "drivers/gpio/gpio_ext.h"
 #include "../ext/g0_firmware/for_fome/g0_spi_protocol.h"
 
 #include <atomic>
@@ -20,6 +21,7 @@ static constexpr spi_device_e G0_SPI_DEVICE = SPI_DEVICE_5;
 static constexpr brain_pin_e G0_SPI_CS_PIN = Gpio::F6;
 static constexpr brain_pin_e G0_RESET_PIN = Gpio::B14;
 static constexpr brain_pin_e G0_BOOT_PIN = Gpio::B15;
+static constexpr brain_pin_e G0_OUTPUT_BASE_PIN = Gpio::PROTECTED_PIN_0;
 
 static constexpr size_t G0_ADC_FIRST_CHANNEL_INDEX = 20;
 static constexpr int G0_SPI_THREAD_ACTIVE_PERIOD_MS = 1;
@@ -27,6 +29,13 @@ static constexpr int G0_SPI_THREAD_IDLE_PERIOD_MS = 60 * 60 * 1000;
 static constexpr int G0_SPI_THREAD_POLL_PERIOD_MS = 20;
 static constexpr int G0_SPI_THREAD_TIMEOUT_MS = 250;
 static constexpr int G0_SPI_APP_RESPONSE_DELAY_US = 250;
+
+static const char* g0OutputPinNames[] = {
+		"G0 Out 1",
+		"G0 Out 2",
+		"G0 Out 3",
+		"G0 Out 4",
+};
 
 static NO_CACHE uint8_t g0SpiTxBuffer[protocol::appFrameSize];
 static NO_CACHE uint8_t g0SpiRxBuffer[protocol::appFrameSize];
@@ -73,6 +82,14 @@ static bool isValidAnalogIndex(size_t idx) {
 
 static bool isValidOutput(uint8_t output) {
 	return output >= 1 && output <= protocol::outputCount;
+}
+
+static bool isOutputPin(brain_pin_e pin) {
+	return pin >= G0_OUTPUT_BASE_PIN && pin < G0_OUTPUT_BASE_PIN + protocol::outputCount;
+}
+
+static uint8_t getOutputIndex(brain_pin_e pin) {
+	return static_cast<uint8_t>(pin - G0_OUTPUT_BASE_PIN + 1);
 }
 
 static void exchangeFrame(SPIDriver& spi, const protocol::AppFrame& tx, protocol::AppFrame& rx) {
@@ -144,6 +161,111 @@ static G0AdcProvider& adcProvider() {
 	static G0AdcProvider instance;
 	return instance;
 }
+
+class G0OutputPins final : public GpioChip {
+public:
+	int init() override {
+		return 0;
+	}
+
+	int setPadMode(size_t pin, iomode_t mode) override {
+		if (pin >= protocol::outputCount) {
+			return -1;
+		}
+
+		if ((mode & PAL_STM32_MODE_MASK) == PAL_STM32_MODE_OUTPUT) {
+			return 0;
+		}
+
+		return g0DisableOutput(pin + 1) ? 0 : -1;
+	}
+
+	int writePad(size_t pin, int value) override {
+		if (pin >= protocol::outputCount) {
+			return -1;
+		}
+
+		return g0SetOutput(pin + 1, 0, value ? protocol::outputDutyMax : 0) ? 0 : -1;
+	}
+
+	int readPad(size_t pin) override {
+		if (pin >= protocol::outputCount) {
+			return -1;
+		}
+
+		G0OutputState state;
+		if (!g0GetOutputState(pin + 1, state)) {
+			return -1;
+		}
+
+		return state.duty != 0;
+	}
+};
+
+class G0Pwm final : public hardware_pwm {
+public:
+	bool init(brain_pin_e pin, float frequencyHz, float duty) {
+		if (!isOutputPin(pin)) {
+			return false;
+		}
+
+		const uint8_t output = getOutputIndex(pin);
+		if (m_initialized && m_output != output) {
+			return false;
+		}
+
+		m_output = output;
+		m_initialized = true;
+
+		setFrequency(frequencyHz);
+		setDuty(duty);
+		return true;
+	}
+
+	void setDuty(float duty) override {
+		if (!m_initialized) {
+			return;
+		}
+
+		if (!std::isfinite(duty)) {
+			return;
+		}
+
+		duty = clampF(0, duty, 1);
+		m_duty = static_cast<uint16_t>(lroundf(duty * protocol::outputDutyMax));
+		apply();
+	}
+
+	void setFrequency(float frequencyHz) override {
+		if (!m_initialized) {
+			return;
+		}
+
+		if (!std::isfinite(frequencyHz) || frequencyHz <= 0) {
+			m_frequencyHz = 0;
+			apply();
+			return;
+		}
+
+		m_frequencyHz = static_cast<uint32_t>(lroundf(frequencyHz));
+		apply();
+	}
+
+private:
+	void apply() {
+		if (m_frequencyHz == 0) {
+			g0DisableOutput(m_output);
+			return;
+		}
+
+		g0SetOutput(m_output, m_frequencyHz, m_duty);
+	}
+
+	uint8_t m_output = 0;
+	uint32_t m_frequencyHz = 0;
+	uint16_t m_duty = 0;
+	bool m_initialized = false;
+};
 
 class G0SpiIoDevice final : public BackgroundSpiDevice {
 public:
@@ -690,8 +812,11 @@ private:
 };
 
 static G0SpiIoDevice g0SpiIoDevice;
+static G0OutputPins g0OutputPins;
+static G0Pwm g0Pwms[protocol::outputCount];
 static bool g0AdcProviderRegistered = false;
 static bool g0ConsoleRegistered = false;
+static bool g0OutputPinsRegistered = false;
 
 static void registerConsoleActions() {
 	if (g0ConsoleRegistered) {
@@ -700,6 +825,21 @@ static void registerConsoleActions() {
 
 	addConsoleAction("g0info", []() { g0SpiIoDevice.printInfo(); });
 	g0ConsoleRegistered = true;
+}
+
+static void registerOutputPins() {
+	if (g0OutputPinsRegistered) {
+		return;
+	}
+
+	const int result = gpiochip_register(G0_OUTPUT_BASE_PIN, "g0", g0OutputPins, protocol::outputCount);
+	if (result != static_cast<int>(G0_OUTPUT_BASE_PIN)) {
+		efiPrintf("G0 I/O ERROR: failed to register output pins");
+		return;
+	}
+
+	gpiochips_setPinNames(G0_OUTPUT_BASE_PIN, g0OutputPinNames);
+	g0OutputPinsRegistered = true;
 }
 } // namespace
 
@@ -714,6 +854,7 @@ void initG0Io() {
 		g0AdcProviderRegistered = true;
 	}
 
+	registerOutputPins();
 	registerConsoleActions();
 	g0SpiIoDevice.enablePolling();
 }
@@ -740,6 +881,19 @@ void g0ResumeIo() {
 
 bool g0SetInputMode(uint8_t input, uint8_t mode) {
 	return g0SpiIoDevice.setInputMode(input, mode);
+}
+
+bool g0IsOutputPin(brain_pin_e pin) {
+	return isOutputPin(pin);
+}
+
+hardware_pwm* g0TryInitPwmPin(brain_pin_e pin, float frequencyHz, float duty) {
+	if (!isOutputPin(pin)) {
+		return nullptr;
+	}
+
+	auto& pwm = g0Pwms[getOutputIndex(pin) - 1];
+	return pwm.init(pin, frequencyHz, duty) ? &pwm : nullptr;
 }
 
 bool g0SetOutput(uint8_t output, uint32_t frequencyHz, uint16_t duty) {
@@ -784,6 +938,14 @@ void g0ResumeIo() {}
 
 bool g0SetInputMode(uint8_t, uint8_t) {
 	return false;
+}
+
+bool g0IsOutputPin(brain_pin_e) {
+	return false;
+}
+
+hardware_pwm* g0TryInitPwmPin(brain_pin_e, float, float) {
+	return nullptr;
 }
 
 bool g0SetOutput(uint8_t, uint32_t, uint16_t) {
